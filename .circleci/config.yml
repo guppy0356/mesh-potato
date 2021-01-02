@@ -1,0 +1,50 @@
+version: 2
+
+jobs:
+  build:
+    docker:
+      - image: circleci/ruby:2.7.1
+        environment:
+          BUNDLE_JOBS: 3
+          BUNDLE_RETRY: 3
+          BUNDLE_PATH: vendor/bundle
+
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - lambda-app-v1-{{ checksum "Gemfile.lock" }}
+            - lambda-app-v1-
+      - run:
+          name: Bundle install
+          command: bundle check --path vendor/bundle || bundle install --deployment
+      - save_cache:
+          key: lambda-app-v1-{{ checksum "Gemfile.lock" }}
+          paths:
+            - vendor/bundle
+  test:
+    docker:
+      - image: circleci/ruby:2.7.1
+        environment:
+          BUNDLE_JOBS: 3
+          BUNDLE_RETRY: 3
+          BUNDLE_PATH: vendor/bundle
+
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - lambda-app-v1-{{ checksum "Gemfile.lock" }}
+            - lambda-app-v1-
+      - run:
+          name: RSpec
+          command: bundle exec rspec
+
+workflows:
+  version: 2
+  build_and_test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
